@@ -48,16 +48,17 @@ vector<vector<double>>* leerCSV(string nombreArchivo) {
 
 
 vector<vector<double>> discretizar(const vector<vector<double> >& mat, uint val){//supongo que la matriz mat es cuadrada
-	vector<vector<double>> res (mat.size()/val, vector<double> (mat.size()/val));
+    int tam_pixel = mat.size()/val;
+    vector<vector<double>> res (val, vector<double> (val));
 	for(uint i = 0; i< res.size(); i++){
 		for(uint j = 0; j < res.size(); j++){
 			double temp = 0;
-			for (uint k = 0+i*val; k < (i+1)*val; k++){
-				for(uint h = 0+j*val; h < (j+1)*val; h++){
+			for (uint k = 0+i*tam_pixel; k < (i+1)*tam_pixel; k++){
+				for(uint h = 0+j*tam_pixel; h < (j+1)*tam_pixel; h++){
 					temp+= mat[k][h];
 				}
 			}
-			res[i][j] = temp/(val*val);
+			res[i][j] = temp/(tam_pixel*tam_pixel);
 		}
 	}
 	return res;
@@ -103,6 +104,42 @@ VectorMapMatrix generarRayos_barrido_H(size_t tamMatriz, size_t cada_cuanto) {
     return D_ks;
 }
 
+
+double WGN_generate()
+{/* Generates additive white Gaussian Noise samples with zero mean and a standard deviation of 1. */
+
+    double temp1;
+    double temp2;
+    double result;
+    int p;
+
+    p = 1;
+
+    while( p > 0 )
+    {
+        temp2 = ( rand() / ( (double)RAND_MAX ) ); /*  rand() function generates an
+                                                       integer between 0 and  RAND_MAX,
+                                                       which is defined in stdlib.h.
+                                                   */
+
+        if ( temp2 == 0 )
+        {// temp2 is >= (RAND_MAX / 2)
+            p = 1;
+        }// end if
+        else
+        {// temp2 is < (RAND_MAX / 2)
+            p = -1;
+        }// end else
+
+    }// end while()
+
+    temp1 = cos( ( 2.0 * (double)PI ) * rand() / ( (double)RAND_MAX ) );
+    result = sqrt( -2.0 * log( temp2 ) ) * temp1;
+
+    return result;	// return the generated random sample to the caller
+
+}// end AWGN_generator()
+
 vector<double> uniformNoise(const vector<double>& t, double init, double end, double sign){
     vector<double> res(t.size());
     default_random_engine generator;
@@ -127,6 +164,70 @@ vector<double> uniformNoise(const vector<double>& t, double init, double end, do
     return res;
 }
 
+
+double calcularMedia(const vector<double>& t) {
+    double res = 0;
+    for (const auto &valor : t) {
+        res += valor;
+    }
+    return res/t.size();
+}
+
+double calcularDesvio(const vector<double>& t){
+    double res(t.size());
+
+    double media = calcularMedia(t);
+
+    for (const auto &valor : t) {
+        res += pow(valor - media, 2);
+    }
+    return sqrt(res/t.size()-1);
+}
+
+
+/*
+ * Devuelve un vector de tamaño n con el ruido (basado en el desvio pasado como parametro) generado
+ */
+vector<double> WGNNoise(size_t n, double desvio){
+    vector<double> res(n);
+    for(uint i = 0; i< n; i++){
+        double noise = WGN_generate()*desvio;
+        res[i] = noise;
+    }
+    return res;
+}
+
+
+/*
+ * Dado un vector calcula su desvio y genera otro agregandole ruido multiplicativo
+ * de acuerdo al porcentaje del desvio standar del vector pasado como parametro
+ */
+vector<double> MWGNNoise(const vector<double>& t, double porcentajeDeRuido){
+    uint n = t.size();
+    vector<double> res(n);
+    double desvio = calcularDesvio(t) * porcentajeDeRuido;
+    for(uint i = 0; i< n; i++){
+        double noise = WGN_generate()*desvio;
+        res[i] = t[i] * noise;
+    }
+    return res;
+}
+
+/*
+ * Dado un vector calcula su desvio y genera otro agregandole ruido aditivo
+ * de acuerdo al porcentaje del desvio standar del vector pasado como parametro
+ */
+vector<double> AWGNNoise(const vector<double>& t, double porcentajeDeRuido){
+    uint n = t.size();
+    vector<double> res(n);
+    double desvio = calcularDesvio(t) * porcentajeDeRuido;
+    for(uint i = 0; i< n; i++){
+        double noise = WGN_generate()*desvio;
+        res[i] = t[i] + noise;
+    }
+    return res;
+}
+
 VectorMapMatrix getTraspuesta(const VectorMapMatrix &W) {
     VectorMapMatrix ret(W.cantColumnas(), W.cantFilas());
 
@@ -147,6 +248,12 @@ double ECM(const vector<double>& original, const vector<double>& reconstruido) {
     }
     return ret/(n*n);
 }
+
+double calcularPSNR(const vector<double>& original, const vector<double>& reconstruido) {
+    return 10 * log10 (pow(MAX_u_cuadrado, 2)/ECM(original, reconstruido));
+}
+
+
 
 pair<vector<double>,short> EG2(vector<vector<double>> &mat, vector<double> bb) {
 	unsigned int i,j,l;
