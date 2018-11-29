@@ -13,6 +13,7 @@
 #include <chrono>
 #include "VectorMapMatrix.h"
 
+typedef unsigned char uchar;
 
 using namespace std;
 
@@ -123,7 +124,7 @@ bool esTraspuesta(VectorMapMatrix &D, VectorMapMatrix &Dt) {
 	return ret;
 }
 
-vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, uint tamanoDiscretizacion, double inicioRuido, double finRuido, double signoRuido, size_t* ancho) {
+vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, uint tamanoDiscretizacion, double nivelRuido, size_t* ancho) {
 	vector<vector<double> >* cuerpo;
 	// 1) tomamos la imagen
 	cuerpo = leerCSV(nombreAchivoEntrada);
@@ -133,7 +134,7 @@ vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, 
 	size_t tamMatriz = cuerpoDiscretizado.size();
     *ancho = cuerpoDiscretizado.size();
 	// 3) obtenemos D (la matriz con las trayectorias de los rayos
-	VectorMapMatrix  D = generarRayos(tamMatriz, 2, tamMatriz, 1); //tamaño discretizado, metodo a utilizar, cantidad de rayos, pixeles salteados-1.
+	VectorMapMatrix D = generarRayos(tamMatriz, 2, tamMatriz, 1); //tamaño discretizado, metodo a utilizar, cantidad de rayos, pixeles salteados-1.
 	// 4) pasamos la imagen discretizada a vector
 	vector<double> Vtemp = pasarAVector(cuerpoDiscretizado);
 	V = &Vtemp;
@@ -147,11 +148,11 @@ vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, 
 	// 6) multiplicamos la matriz D por el vector V
 	vector<double> T = D*Vtemp;
 	// 7) le aplicamos ruido al vector T
-	vector<double> Tr = uniformNoise(T, inicioRuido, finRuido, signoRuido);
+	vector<double> Tr = MWGNNoise(T, nivelRuido);
 	// 8) generamos DtD
 	VectorMapMatrix Dt = getTraspuesta(D);
 	vector<vector<double>> DtD = Dt*D;//multMatPorMat(Dt,D);
-	
+
 	// 9) generamos el vector Dt*T
 	vector<double> DtT = Dt*Tr;
 	// 10) resolvemos el sistema DtDx = DtT con EG
@@ -216,7 +217,7 @@ int main(int argc, char * argv[]) {
         cout << "Modo de uso: tp3 -r <nivel_ruido> -i <nombre_archivo_entrada> -o <nombre_archivo_salida>\n";
     } else {
         double nivelRuido = atof(ruido.c_str());
-        vector<double> reconstruccion = reconstruirCuerpo(nombreAchivoEntrada, V, 32, nivelRuido, nivelRuido, 0, &ancho);
+        vector<double> reconstruccion = reconstruirCuerpo(nombreAchivoEntrada, V, 32, nivelRuido, &ancho);
 
         escribirCSV(nombreAchivoSalida, reconstruccion, ancho);
     }
