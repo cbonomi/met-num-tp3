@@ -252,6 +252,34 @@ double calcularPSNR(const vector<double>& original, const vector<double>& recons
     return 10 * log10 (pow(MAX_u_cuadrado, 2)/ECM(original, reconstruido));
 }
 
+vector<double> multMatPorVect(const vector<vector<double> > &M, const vector<double> &v){//recordar que el vector v son las inversas de las velocidades
+    const size_t& n = v.size();
+    vector<double> res(n);
+    for(size_t i = 0; i < n; ++i) {
+        res[i] = 0;
+        for (size_t k = 0; k < n; ++k)
+            res[i] += M[i][k]*v[k];
+    }
+    return res;
+}
+
+vector<double> CML(vector<vector<double>> &mat, vector<double> bb) {
+
+    vector<vector<double> > Ut;
+    vector<double> Sigma;
+    vector<vector<double> > Vt;
+    calcular_svd(mat,Ut,Sigma,Vt);
+
+    vector<double> b_prima = multMatPorVect(Ut,bb);
+    vector<double> res = vector<double>(mat.size(),0.0);
+    for (int i = 0; i < Sigma.size(); ++i){
+        // TODO: formula:
+        // res = res + (b_prima[i] / Sigma[i]) * Vt.fila(i);
+    }
+
+    return res;
+}
+
 
 
 pair<vector<double>,short> EG2(vector<vector<double>> &mat, vector<double> bb) {
@@ -420,10 +448,10 @@ void escribirCSV(string nombreArchivo, vector<double>& vector, size_t ancho) {
     for (uint j=0; j<ancho; j++) {
         for (uint i = 0; i < ancho-1; i++) {
             valor = floor(vector[i + j*ancho]);
-            linea += to_string((unsigned short) valor) + ",";
+            linea += to_string((signed short) valor) + ",";
         }
         valor = floor(vector[ancho-1 + j*ancho]);
-        linea += to_string((unsigned short) valor);
+        linea += to_string((signed short) valor);
         salida << linea << endl;
         linea = "";
     }

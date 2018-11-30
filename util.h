@@ -12,6 +12,7 @@
 #include "rdtsc.h"
 #include "VectorMapMatrix.h"
 #include "calcular_rayos.h"
+#include "factorizacion.h"
 
 
 #define PI 3.1415926536
@@ -32,6 +33,7 @@ vector<double> uniformNoise(const vector<double>& t, double init, double end, do
 VectorMapMatrix getTraspuesta(const VectorMapMatrix &W);
 double ECM(const vector<double>& original, const vector<double>& reconstruido);
 pair<vector<double>,short> EG2(vector<vector<double>> &mat, vector<double> bb);
+vector<double> CML(vector<vector<double>> &mat, vector<double> bb);
 double operator*(const vector<double>& u, const vector<double>& v);
 vector<double> operator*(const vector<vector<double> >& M, const vector<double>& v);
 void experimentacion_barrido_H(const string& directorio, uint taman_imags, const vector<unsigned short int>& discretizaciones, const vector<pair<float,float> >& ruidos, const vector<unsigned short int>& espacios_entre_censores);
