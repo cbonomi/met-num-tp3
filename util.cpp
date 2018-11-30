@@ -264,19 +264,23 @@ vector<double> multMatPorVect(const vector<vector<double> > &M, const vector<dou
 }
 
 vector<double> CML(vector<vector<double>> &mat, vector<double> bb) {
-
     vector<vector<double> > Ut;
     vector<double> Sigma;
     vector<vector<double> > Vt;
     calcular_svd(mat,Ut,Sigma,Vt);
-
     vector<double> b_prima = multMatPorVect(Ut,bb);
     vector<double> res = vector<double>(mat.size(),0.0);
-    for (int i = 0; i < Sigma.size(); ++i){
-        // TODO: formula:
-        // res = res + (b_prima[i] / Sigma[i]) * Vt.fila(i);
-    }
+    
+    for (uint i = 0; i < Sigma.size(); ++i){
+       // TODO: formula:
+        vector<double> vec = Vt[i];
+        multVecEsc(vec,b_prima[i]);
+        multVecEsc(vec,(1/Sigma[i]));
 
+        res = sumaVec(res,vec);
+
+        //res = res + (b_prima[i] / Sigma[i]) * Vt.fila(i);
+    }
     return res;
 }
 
