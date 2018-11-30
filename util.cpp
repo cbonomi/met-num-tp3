@@ -78,14 +78,13 @@ map<uint, double> pasarAMap(const vector<vector<double> >& mat){
 }
 
 vector<double> pasarAVector(const vector<vector<double> >& mat){
-	vector<double> res (mat.size()*mat[0].size(),0);
-	for(uint i = 0; i< mat.size(); i++){
-		for(uint j = 0; j < mat[0].size(); j++){
-			res[i*mat[0].size()+j] = mat[i][j];
-		}
-	}
-	return res;
-
+    vector<double> res (mat.size()*mat[0].size(),0);
+    for(uint i = 0; i< mat.size(); i++){
+        for(uint j = 0; j < mat[0].size(); j++){
+            res[i*mat[0].size()+j] = mat[i][j];
+        }
+    }
+    return res;
 }
 
 VectorMapMatrix generarRayos_barrido_H(size_t tamMatriz, size_t cada_cuanto) {
@@ -354,45 +353,6 @@ vector<double> operator*(const vector<vector<double> >& M, const vector<double>&
  * @param ruido: vector con los distintos intervalos del porcentaje de ruido (expresado como valor entre 0 y 1)
  * @param espacio_entre_censores
  */
-void experimentacion_barrido_H(const string& directorio, uint taman_imags, const vector<unsigned short int>& discretizaciones, const vector<pair<float,float> >& ruidos, const vector<unsigned short int>& espacios_entre_censores) {   //Necesito saber el tamaño de las imagenes de antemano.
-    vector<string> archivos;
-    listarDirectorio(directorio, archivos);
-    /*archivos.push_back("Imagenes_para_probar/1.2.826.0.1.3680043.2.656.1.138.1.csv");*/
-    ofstream salida;
-    for(size_t ind_disc = 0; ind_disc < discretizaciones.size(); ++ind_disc){
-        for(size_t ind_espac = 0; ind_espac < espacios_entre_censores.size(); ++ind_espac){
-            if(taman_imags/discretizaciones[ind_disc] > espacios_entre_censores[ind_espac]/2){ //Si hay espacio para al menos 1 fuente de lasers
-                VectorMapMatrix D = generarRayos_barrido_H(taman_imags/discretizaciones[ind_disc], espacios_entre_censores[ind_espac]);
-                VectorMapMatrix Dt = getTraspuesta(D);
-                vector<vector<double> > Dt_D = Dt * D;
-                salida.open("resultados de prueba/Discretizacion:"+to_string(discretizaciones[ind_disc])+" espaciado:"+to_string(espacios_entre_censores[ind_espac])+" .txt");
-                salida.close(); //La intención de estas 2 lineas es poner en blanco el archivo si ya existe.
-                for(size_t ind_arch = 0; ind_arch < archivos.size(); ++ind_arch){
-                    vector<vector<double> > *imagen_entera = leerCSV(archivos[ind_arch]);
-                    vector<vector<double> > imagen_discreta = discretizar(*imagen_entera, discretizaciones[ind_disc]);
-                    vector<double> vec_imagen_discreta = pasarAVector(imagen_discreta);
-                    vector<double> t_sin_ruido = D * vec_imagen_discreta;
-                    salida.open("resultados de prueba/Discretizacion:"+to_string(discretizaciones[ind_disc])+" espaciado:"+to_string(espacios_entre_censores[ind_espac])+" .txt", ios::app);
-                    salida << "Imagen "+archivos[ind_arch]+":\t";
-                    salida.close();
-                    for(size_t ind_ruido = 0; ind_ruido < ruidos.size(); ++ind_ruido){
-                        vector<double> t_con_ruido = uniformNoise(t_sin_ruido, ruidos[ind_ruido].first, ruidos[ind_ruido].second, 0);
-                        pair<vector<double>, short> v = EG2(Dt_D, Dt * t_con_ruido);
-                        double error = ECM(vec_imagen_discreta, v.first);
-                        salida.open("resultados de prueba/Discretizacion:"+to_string(discretizaciones[ind_disc])+" espaciado:"+to_string(espacios_entre_censores[ind_espac])+" .txt", ios::app);
-                        salida << error << ",\t";
-                        salida.close();
-                    }
-                    salida.open("resultados de prueba/Discretizacion:"+to_string(discretizaciones[ind_disc])+" espaciado:"+to_string(espacios_entre_censores[ind_espac])+" .txt", ios::app);
-                    salida << endl;
-                    salida << endl; //Lo hago 2 veces para mejor visibilidad.
-                    salida.close();
-                    delete imagen_entera;
-                }
-            }
-        }
-    }
-}
 
 //#define repeticiones 20
 
@@ -413,122 +373,6 @@ void experimentacion_barrido_H(const string& directorio, uint taman_imags, const
  * @param ruido: vector con los distintos intervalos del porcentaje de ruido (expresado como valor entre 0 y 1)
  * @param repeticiones: cantidad de veces que se repite cada parte del proceso cuyo tiempo queremos medir.
  */
-void experimentacion(char tipo, const vector<string>& archivos, string carpeta_salida, uint taman_imags, const vector<unsigned short int>& discretizaciones, const vector<unsigned short int>& cantidades_de_fuentes, const vector<unsigned short int>& separaciones, const vector<pair<float,float> >& ruidos, uint16_t repeticiones) {   //Necesito saber el tamaño de las imagenes de antemano.
-    ofstream salida;
-    for(size_t ind_disc = 0; ind_disc < discretizaciones.size(); ++ind_disc){
-        for(size_t ind_fuent = 0; ind_fuent < cantidades_de_fuentes.size(); ++ind_fuent){
-            for(size_t ind_separ = 0; ind_separ < separaciones.size(); ++ind_separ){
-                uint cant_casilleros = taman_imags/discretizaciones[ind_disc];
-                if(cantidades_de_fuentes[ind_fuent] <= cant_casilleros){    // && separaciones[ind_separ] < cant_casilleros/2){ //Quiero que cada fuente genere al menos 6 o 4 rayos aproximadamente (6 para blos barridos y 4 para la rotación)
-                    VectorMapMatrix D;
-                    string nombre_arch_salida;
-                    unsigned long comienzo, final, ciclos_clock[repeticiones];
-                    for(uint8_t i = 0; i < repeticiones; ++i){
-                        if(tipo == 'r') {  //Rotaciones
-                            RDTSC_START(comienzo);
-                            D = generarRayos(cant_casilleros, 0, cantidades_de_fuentes[ind_fuent], separaciones[ind_separ]);
-                            RDTSC_STOP(final);
-                            nombre_arch_salida = carpeta_salida + "/Tipo:R";
-                        }else if(tipo == 'H'){  //Barrido horizontal
-                            RDTSC_START(comienzo);
-                            D = generarRayos(cant_casilleros, 1, cantidades_de_fuentes[ind_fuent], separaciones[ind_separ]);
-                            RDTSC_STOP(final);
-                            nombre_arch_salida = carpeta_salida + "/Tipo:H";
-                        }else if(tipo == 'V') {  //Barrido vertical
-                            RDTSC_START(comienzo);
-                            D = generarRayos(cant_casilleros, 2, cantidades_de_fuentes[ind_fuent], separaciones[ind_separ]);
-                            RDTSC_STOP(final);
-                            nombre_arch_salida = carpeta_salida + "/Tipo:V";
-                        }else if(tipo == 'O') {  //Barrido vertical y horizontal
-                            RDTSC_START(comienzo);
-                            D = generarRayos(cant_casilleros, 3, cantidades_de_fuentes[ind_fuent], separaciones[ind_separ]);
-                            RDTSC_STOP(final);
-                            nombre_arch_salida = carpeta_salida + "/Tipo:HyV";
-                        }else if(tipo == 'o') {  //Barrido vertical y horizontal con menos repeticiones.
-                            RDTSC_START(comienzo);
-                            D = generarRayos(cant_casilleros, 4, cantidades_de_fuentes[ind_fuent], separaciones[ind_separ]);
-                            RDTSC_STOP(final);
-                            nombre_arch_salida = carpeta_salida + "/Tipo:HyV_SR";
-                        }else if(tipo == 'h') {  //Barrido horizontal sin repeticiones.
-                            RDTSC_START(comienzo);
-                            D = generarRayos(cant_casilleros, 5, cantidades_de_fuentes[ind_fuent], separaciones[ind_separ]);
-                            RDTSC_STOP(final);
-                            nombre_arch_salida = carpeta_salida + "/Tipo:H_SR";
-                        }else if(tipo == 'v') {  //Barrido vertical sin repeticiones.
-                            RDTSC_START(comienzo);
-                            D = generarRayos(cant_casilleros, 6, cantidades_de_fuentes[ind_fuent], separaciones[ind_separ]);
-                            RDTSC_STOP(final);
-                            nombre_arch_salida = carpeta_salida + "/Tipo:V_SR";
-                        }
-                        ciclos_clock[i] = final - comienzo;
-                    }
-                    nombre_arch_salida += " Discretizacion:"+to_string(discretizaciones[ind_disc])+" cantidad_fuentes:"+to_string(cantidades_de_fuentes[ind_fuent])+" separacion:"+to_string(separaciones[ind_separ])+" .txt";
-                    salida.open(nombre_arch_salida);
-                    salida << "Cantidad rayos: " << D.cantFilas() << endl;
-                    salida << "Cantidad ciclos del calculo de los mismos: ";
-                    for(uint8_t i = 0; i < repeticiones; ++i){
-                        salida << "N°" << i+1 << " " << ciclos_clock[i] << "; ";
-                    }
-                    salida << endl << endl;
-                    salida.close();
-                    VectorMapMatrix Dt;
-                    vector<vector<double> > Dt_D;
-                    unsigned long ciclos_antes_de_leer_imagenes[repeticiones];
-                    for(uint8_t i = 0; i < repeticiones; ++i) {
-                        RDTSC_START(comienzo);
-                        Dt = getTraspuesta(D);
-                        Dt_D = Dt * D;
-                        RDTSC_STOP(final);
-                        ciclos_clock[i] += final - comienzo;
-                        ciclos_antes_de_leer_imagenes[i] = ciclos_clock[i];
-                    }
-                    for(size_t ind_arch = 0; ind_arch < archivos.size(); ++ind_arch){
-                        vector<vector<double> > *imagen_entera = leerCSV(archivos[ind_arch]);
-                        vector<vector<double> > imagen_discreta;
-                        vector<double> vec_imagen_discreta;
-                        vector<double> t_sin_ruido;
-                        unsigned long ciclos_antes_del_ruido[repeticiones];
-                        for(uint8_t i = 0; i < repeticiones; ++i) {
-                            ciclos_clock[i] = ciclos_antes_de_leer_imagenes[i];
-                            RDTSC_START(comienzo);
-                            imagen_discreta = discretizar(*imagen_entera, discretizaciones[ind_disc]);
-                            vec_imagen_discreta = pasarAVector(imagen_discreta);
-                            t_sin_ruido = D * vec_imagen_discreta;
-                            RDTSC_STOP(final);
-                            ciclos_clock[i] += final - comienzo;
-                            ciclos_antes_del_ruido[i] = ciclos_clock[i];
-                        }
-                        salida.open(nombre_arch_salida, ios::app);
-                        salida << "Imagen: "+archivos[ind_arch] << endl;
-                        salida.close();
-                        for(size_t ind_ruido = 0; ind_ruido < ruidos.size(); ++ind_ruido){
-                            double error;
-                            salida.open(nombre_arch_salida, ios::app);
-                            salida << "\t"<< "Ruido N°" << ind_ruido+1 << ":" << endl;
-                            salida << "\t\tCiclos de clock: ";
-                            for(uint8_t i = 0; i < repeticiones; ++i) {
-                                ciclos_clock[i] = ciclos_antes_del_ruido[i];
-                                RDTSC_START(comienzo);
-                                vector<double> t_con_ruido = uniformNoise(t_sin_ruido, ruidos[ind_ruido].first, ruidos[ind_ruido].second, 0);
-                                pair<vector<double>, short> v = EG2(Dt_D, Dt * t_con_ruido);
-                                error = ECM(vec_imagen_discreta, v.first);
-                                RDTSC_STOP(final);
-                                ciclos_clock[i] += final - comienzo;
-                                salida << "N°" << i+1 << " " << ciclos_clock[i] << "; ";
-                            }
-                            salida << endl;
-                            salida << "\t\tError: " << error << endl;
-                            salida.close();
-                        }
-                        salida.open(nombre_arch_salida, ios::app);
-                        salida << endl << endl; //Lo hago 2 veces para mejor visibilidad.
-                        salida.close();
-                    }
-                }
-            }
-        }
-    }
-}
 
 void listarDirectorio(const string& directorio,  vector<string>& v)
 {
@@ -573,11 +417,13 @@ void escribirCSV(string nombreArchivo, vector<double>& vector, size_t ancho) {
     ofstream salida(nombreArchivo, ios_base::out);
     string linea = "";
     double valor;
-    for (int j=0; j<ancho; j++) {
-        for (int i = 0; i < ancho; i++) {
-            valor = floor(vector[i + j]);
-            linea += to_string((signed short) valor) + " ";
+    for (uint j=0; j<ancho; j++) {
+        for (uint i = 0; i < ancho-1; i++) {
+            valor = floor(vector[i + j*ancho]);
+            linea += to_string((unsigned short) valor) + ",";
         }
+        valor = floor(vector[ancho-1 + j*ancho]);
+        linea += to_string((unsigned short) valor);
         salida << linea << endl;
         linea = "";
     }

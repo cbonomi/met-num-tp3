@@ -124,10 +124,24 @@ bool esTraspuesta(VectorMapMatrix &D, VectorMapMatrix &Dt) {
 	return ret;
 }
 
+void imprimirVector(const vector<unsigned short> & vect, uint tam){
+    for(uint i = 0; i< tam; i++){
+        for(uint j = 0; j < tam; j++){
+            cout << vect[i*tam+j] << ",";
+        } cout << endl;
+    }
+
+}
+
 vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, uint metodo, uint tamanoDiscretizacion, double nivelRuido, size_t* ancho) {
 	vector<vector<double> >* cuerpo;
 	// 1) tomamos la imagen
 	cuerpo = leerCSV(nombreAchivoEntrada);
+//    *ancho = cuerpo[0].size();
+//    vector<double> Vtemp = pasarAVector(*cuerpo);
+//    imprimirVector(Vtemp, *ancho);
+//    string salida = nombreAchivoEntrada + "disc.csv";
+//    escribirCSV(salida.c_str(), Vtemp, *ancho);
 
 	// 2) la discretizamos
 	vector<vector<double> > cuerpoDiscretizado = discretizar(*cuerpo, tamanoDiscretizacion);
@@ -138,7 +152,8 @@ vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, 
 	// 4) pasamos la imagen discretizada a vector
 	vector<double> Vtemp = pasarAVector(cuerpoDiscretizado);
 	V = &Vtemp;
-	// 5) invertimos el vector V
+
+    // 5) invertimos el vector V
 	/*vector<double> Vinv (V->size(), 0);
 	for (uint i = 0; i< V->size(); i++){
 		if ((*V)[i] != 0){
@@ -166,6 +181,8 @@ vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, 
 
 	//cout << ECM(*V,solucion.first) << endl;
 	// invertir los valores de la solucion y volverlo a pasar a matriz para luego convertirlo en una imagen que podamos ver
+    string salida = nombreAchivoEntrada + "disc.csv";
+    escribirCSV(salida.c_str(), solucion.first, *ancho);
 	return solucion.first;
 }
 
@@ -230,7 +247,7 @@ int main(int argc, char * argv[]) {
         uint discretizacion = atoi(d.c_str());
         vector<double> reconstruccion = reconstruirCuerpo(nombreAchivoEntrada, V, metodo, discretizacion, nivelRuido, &ancho);
 
-        escribirCSV(nombreAchivoSalida, reconstruccion, ancho);
+//        escribirCSV(nombreAchivoSalida, reconstruccion, ancho);
     }
 
     return 0;
