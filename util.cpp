@@ -573,11 +573,13 @@ void escribirCSV(string nombreArchivo, vector<double>& vector, size_t ancho) {
     ofstream salida(nombreArchivo, ios_base::out);
     string linea = "";
     double valor;
-    for (int j=0; j<ancho; j++) {
-        for (int i = 0; i < ancho; i++) {
-            valor = floor(vector[i + j]);
-            linea += to_string((signed short) valor) + " ";
+    for (uint j=0; j<ancho; j++) {
+        for (uint i = 0; i < ancho-1; i++) {
+            valor = floor(vector[i + j*ancho]);
+            linea += to_string((unsigned short) valor) + ",";
         }
+        valor = floor(vector[ancho-1 + j*ancho]);
+        linea += to_string((unsigned short) valor);
         salida << linea << endl;
         linea = "";
     }
