@@ -11,6 +11,7 @@
 
 using namespace std;
 
+vector<double> sumaVec(const vector<double> &vec1, const vector<double> &vec2);
 vector<double> restaVec(const vector<double> &vec1, const vector<double> &vec2);
 double norma1(const vector<double> &v);
 void normalizar2(vector<double>& v);

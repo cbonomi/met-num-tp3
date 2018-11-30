@@ -5,6 +5,13 @@
 using namespace std;
 
 
+vector<double> sumaVec(const vector<double> &vec1, const vector<double> &vec2) {
+    vector<double> res (vec1.size());
+    for (uint i = 0; i < vec1.size(); i++)
+        res[i] = vec1[i]+vec2[i];
+    return res;
+}
+
 vector<double> restaVec(const vector<double> &vec1, const vector<double> &vec2) {
     vector<double> res (vec1.size());
     for (uint i = 0; i < vec1.size(); i++)
@@ -106,6 +113,7 @@ pair<double,vector<double> > metodoPotencia(const vector<vector<double> > &M) {
     return res2;
 }
 
+
 void multVecEsc(vector<double> &vec, double escalar) {//para multiplicar un vector por un escalar. Afecta al vector parámetro.
     for (uint i = 0; i<vec.size();i++)
             vec[i] *= escalar;
@@ -129,9 +137,9 @@ vector<vector<double> > calcularXtX (const vector<vector<double> >& X) {
     const size_t& n = X.size();
     const size_t& m = X[0].size();
     vector<vector<double> > res(m, vector<double>(m));
-    for (int i = 0; i < m; ++i){
-        for (int j = i; j < m; ++j){
-            for (int k = 0; k < n; ++k){
+    for (uint i = 0; i < m; ++i){
+        for (uint j = i; j < m; ++j){
+            for (uint k = 0; k < n; ++k){
                 // Using X_T won't trash the cache.
                 res[i][j] += X[k][i] * X[k][j];
 
@@ -181,6 +189,7 @@ void calcular_svd(const vector<vector<double> > &mat,
     Sigm.clear();
     while ((c<autovectores.size()) && (sqrt(autovectores[c].first) > TOLERANCIA)){
         Sigm.push_back(sqrt(autovectores[c].first));
+        c++;
     }
 
     //Calculamos Ut
@@ -194,5 +203,4 @@ void calcular_svd(const vector<vector<double> > &mat,
             Ut[i][j] = u_i[j];
         }
     }
-
 }
