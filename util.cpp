@@ -503,3 +503,105 @@ void escribirCSV(string nombreArchivo, vector<double>& vector, size_t ancho) {
     }
     salida.close();
 }
+
+double calcularPSNR(const vector<double>& original, const vector<double>& reconstruido) {
+    return 10 * log10 (pow(MAX_u_cuadrado, 2)/ECM(original, reconstruido));
+}
+
+double WGN_generate()
+{/* Generates additive white Gaussian Noise samples with zero mean and a standard deviation of 1. */
+
+    double temp1;
+    double temp2;
+    double result;
+    int p;
+
+    p = 1;
+
+    while( p > 0 )
+    {
+        temp2 = ( rand() / ( (double)RAND_MAX ) ); /*  rand() function generates an
+                                                       integer between 0 and  RAND_MAX,
+                                                       which is defined in stdlib.h.
+                                                   */
+
+        if ( temp2 == 0 )
+        {// temp2 is >= (RAND_MAX / 2)
+            p = 1;
+        }// end if
+        else
+        {// temp2 is < (RAND_MAX / 2)
+            p = -1;
+        }// end else
+
+    }// end while()
+
+    temp1 = cos( ( 2.0 * (double)PI ) * rand() / ( (double)RAND_MAX ) );
+    result = sqrt( -2.0 * log( temp2 ) ) * temp1;
+
+    return result;	// return the generated random sample to the caller
+
+}// end AWGN_generator()
+
+
+double calcularMedia(const vector<double>& t) {
+    double res = 0;
+    for (const auto &valor : t) {
+        res += valor;
+    }
+    return res/t.size();
+}
+
+double calcularDesvio(const vector<double>& t){
+    double res(t.size());
+
+    double media = calcularMedia(t);
+
+    for (const auto &valor : t) {
+        res += pow(valor - media, 2);
+    }
+    return sqrt(res/t.size()-1);
+}
+
+/*
+ * Devuelve un vector de tamaño n con el ruido (basado en el desvio pasado como parametro) generado
+ */
+vector<double> WGNNoise(size_t n, double desvio){
+    vector<double> res(n);
+    for(uint i = 0; i< n; i++){
+        double noise = WGN_generate()*desvio;
+        res[i] = noise;
+    }
+    return res;
+}
+
+
+/*
+ * Dado un vector calcula su desvio y genera otro agregandole ruido multiplicativo
+ * de acuerdo al porcentaje del desvio standar del vector pasado como parametro
+ */
+vector<double> MWGNNoise(const vector<double>& t, double porcentajeDeRuido){
+    uint n = t.size();
+    vector<double> res(n);
+    double desvio = calcularDesvio(t) * porcentajeDeRuido;
+    for(uint i = 0; i< n; i++){
+        double noise = WGN_generate()*desvio;
+        res[i] = t[i] * noise;
+    }
+    return res;
+}
+
+/*
+ * Dado un vector calcula su desvio y genera otro agregandole ruido aditivo
+ * de acuerdo al porcentaje del desvio standar del vector pasado como parametro
+ */
+vector<double> AWGNNoise(const vector<double>& t, double porcentajeDeRuido){
+    uint n = t.size();
+    vector<double> res(n);
+    double desvio = calcularDesvio(t) * porcentajeDeRuido;
+    for(uint i = 0; i< n; i++){
+        double noise = WGN_generate()*desvio;
+        res[i] = t[i] + noise;
+    }
+    return res;
+}
