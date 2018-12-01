@@ -505,7 +505,7 @@ void escribirCSV(string nombreArchivo, vector<double>& vector, size_t ancho) {
 }
 
 double calcularPSNR(const vector<double>& original, const vector<double>& reconstruido) {
-    return 10 * log10 (pow(MAX_u_cuadrado, 2)/ECM(original, reconstruido));
+    return 10 * log10 (MAX_u_cuadrado/ECM(original, reconstruido));
 }
 
 double WGN_generate()
