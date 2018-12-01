@@ -33,6 +33,8 @@ public:
 
     VectorMapMatrix operator+(VectorMapMatrix const &B);
 
+    vector< vector<double> > convert_to_vec_matrix();
+
     vector<vector<double>> operator*(const VectorMapMatrix &B);
 
     vector<double> operator*(const vector<double> &v);

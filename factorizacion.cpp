@@ -35,11 +35,15 @@ double norma2(const vector<double> &vec){//no tomo raiz porque no hace falta en 
 }
 
 vector<double> mult_matr_por_vect(const vector<vector<double> > &M, const vector<double> &v){//recordar que el vector v son las inversas de las velocidades
-    const size_t& n = v.size();
-    vector<double> res(n);
-    for(size_t i = 0; i < n; ++i) {
+    const size_t& cant_filas = M.size();
+    const size_t& cant_columnas = M[0].size();
+    if (cant_columnas != v.size()){
+        cerr << "Los tamaños no coinciden " << cant_filas << "x" << cant_columnas << " * " << v.size() << "x1" <<  endl; 
+    }
+    vector<double> res(cant_filas);
+    for(size_t i = 0; i < cant_filas; ++i) {
         res[i] = 0;
-        for (size_t k = 0; k < n; ++k)
+        for (size_t k = 0; k < cant_columnas; ++k)
             res[i] += M[i][k]*v[k];
     }
     return res;
@@ -64,6 +68,8 @@ double producto_interno(const vector<double> &v, const vector<double> &v2){
 
 pair<double,vector<double> > metodoPotencia(const vector<vector<double> > &M) {
     const size_t& n = M[0].size();
+    double MAX_DIF = 0.0001;
+    uint MAX_ITER = 500;
     pair<double,vector<double> > res2;
     double& autovalor2 = res2.first;
     double autovalor2_temp;
@@ -75,7 +81,7 @@ pair<double,vector<double> > metodoPotencia(const vector<vector<double> > &M) {
     double diferencia2 = 1;
     float cantidad_iteraciones2 = 0;
     //auto t3 = chrono::system_clock::now();
-    while(diferencia2 >= 0.0001 or cantidad_iteraciones2 < 30){
+    while(diferencia2 >= MAX_DIF and not (cantidad_iteraciones2 >= MAX_ITER)){
         autovector2_temp = mult_matr_por_vect(M, autovector2);
         autovalor2_temp = producto_interno(autovector2, autovector2_temp); //autovector está normalizado.
         normalizar2(autovector2_temp);
@@ -90,7 +96,7 @@ pair<double,vector<double> > metodoPotencia(const vector<vector<double> > &M) {
         autovector2 = mult_matr_por_vect(M, autovector2);
         normalizar2(autovector2);
         diferencia2 = norma1(restaVec(autovector2, autovector2_temp));
-        while(diferencia2 > 0.001){
+        while(diferencia2 >= MAX_DIF and not (cantidad_iteraciones2 >= MAX_ITER)){
             autovector2_temp = mult_matr_por_vect(M, autovector2);
             normalizar2(autovector2_temp);
             autovector2 = mult_matr_por_vect(M, autovector2_temp);
@@ -101,7 +107,7 @@ pair<double,vector<double> > metodoPotencia(const vector<vector<double> > &M) {
         }
     }else{
         diferencia2 = norma1(restaVec(autovector2, autovector2_temp));
-        while(diferencia2 > 0.001){
+        while(diferencia2 >= MAX_DIF and not (cantidad_iteraciones2 >= MAX_ITER)){
             autovector2_temp = mult_matr_por_vect(M, autovector2);
             normalizar2(autovector2_temp);
             autovector2 = mult_matr_por_vect(M, autovector2_temp);
@@ -160,6 +166,7 @@ vector< pair<double,vector<double> > > deflacion(vector<vector<double> > mat) {
     uint N = mat[0].size();
     vector< pair<double,vector<double> > > res (N);
     for (uint i = 0; i < N; i++){
+        cerr << "calculando autovalores: " << i+1 << "/" << N << '\r';
         res[i] = metodoPotencia(mat);
         vector<vector<double> > v_x_vt = multVec(res[i].second);    //v*vt
         multMatEsc(v_x_vt,res[i].first*(-1));                       //-lambda_i*(v*vt)
@@ -173,16 +180,12 @@ void calcular_svd(const vector<vector<double> > &mat,
                         vector<double> &Sigm,
                         vector<vector<double> > &Vt)
 {
+    uint N = mat.size();
+    uint M = mat[0].size();
+    cerr << "LLEGO SVD N=" << N << " M=" << M << endl;
     vector<vector<double> > AtA = calcularXtX(mat);
     vector< pair<double,vector<double> > > autovectores = deflacion(AtA);
     
-    //Calculamos Vt
-    uint N = mat[0].size();
-    Vt = vector<vector<double> >(N, vector<double>(N));
-    for (uint j = 0; j < autovectores.size(); ++j){
-            for(uint i = 0; i < N; ++i)
-                Vt[j][i] = autovectores[j].second[i];
-    }
 
     //Calculamos Sigma
     uint c = 0;
@@ -191,16 +194,25 @@ void calcular_svd(const vector<vector<double> > &mat,
         Sigm.push_back(sqrt(autovectores[c].first));
         c++;
     }
+    cerr << "TERMINO Sig tam=" << Sigm.size() << endl;
+    //Calculamos Vt
+    Vt.clear();
+    for (uint j = 0; j < c; ++j){
+            Vt.push_back(autovectores[j].second);
+    }
 
+    
+    cerr << "TERMINO Vt N=" << Vt.size() << " M=" << Vt[0].size() << endl;
     //Calculamos Ut
-    Ut = vector<vector<double> >(N, vector<double>(N));
+    Ut.clear();
+    cerr << "PRE FOR " << endl;
     for (uint i = 0; i < Sigm.size(); ++i){
         vector<double> vec = Vt[i];
-        multVecEsc(vec,(1/Sigm[i]));
+        multVecEsc(vec,double(1/Sigm[i]));
         vector<double> u_i = mult_matr_por_vect(mat,vec);
         
-        for (uint j = 0; j<N; ++j){
-            Ut[i][j] = u_i[j];
-        }
+        Ut.push_back(u_i);
     }
+    //Completo las filas de Ut
+    cerr << "TERMINO Ut N=" << Ut.size() << " M=" << Ut[0].size() << endl;
 }

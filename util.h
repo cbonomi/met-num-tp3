@@ -14,10 +14,7 @@
 #include "calcular_rayos.h"
 #include "factorizacion.h"
 
-
-#define PI 3.1415926536
-
-const ulong MAX_u_cuadrado = pow(255, 2);
+typedef unsigned char uchar;
 
 using namespace std;
 
@@ -27,10 +24,9 @@ map<uint, double> pasarAMap(const vector<vector<double> >& mat);
 vector<double> pasarAVector(const vector<vector<double> >& mat);
 VectorMapMatrix  generarRayos(size_t tamMatriz, bool fijos);
 VectorMapMatrix  generarRayos_barrido_H(size_t tamMatriz, size_t cada_cuanto);
-vector<double> AWGNNoise(const vector<double>& t, double porcentajeDeRuido);
-vector<double> MWGNNoise(const vector<double>& t, double porcentajeDeRuido);
 vector<double> uniformNoise(const vector<double>& t, double init, double end, double sign);
 VectorMapMatrix getTraspuesta(const VectorMapMatrix &W);
+vector<vector<double> > calcularXtX (const vector<vector<double> >& X);
 double ECM(const vector<double>& original, const vector<double>& reconstruido);
 pair<vector<double>,short> EG2(vector<vector<double>> &mat, vector<double> bb);
 vector<double> CML(vector<vector<double>> &mat, vector<double> bb);
@@ -42,6 +38,5 @@ void listarDirectorio(const string& directorio,  vector<string>& v);
 void escribirVector(string nombreArchivo, vector<double>& vector);
 void escribirVectorDeVectores(string nombreArchivo, vector<vector<double>>& vector);
 void escribirCSV(string nombreArchivo, vector<double>& vector, size_t ancho);
-
 
 #endif //TC_UTIL_H

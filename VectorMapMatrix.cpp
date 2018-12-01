@@ -87,6 +87,21 @@ VectorMapMatrix VectorMapMatrix::operator+(VectorMapMatrix const &B) {
     }
 }
 
+vector<vector<double>> VectorMapMatrix::convert_to_vec_matrix() {
+    vector<vector<double> > res(cantFilas(),vector<double>(cantColumnas(), 0.0));
+    auto it = m[0].begin();
+    uint f = 0;
+    while (f < cantFilas()) {
+        it = m[f].begin(); //acomodo los iteradores para la nueva fila.
+        while(it != m[f].end()) {
+            res[f][it->first] = it->second;
+            it++;
+        }
+        f++; //voy a la siguiente fila
+    }
+    return res;
+}
+
 vector<vector<double>> VectorMapMatrix::operator*(const VectorMapMatrix &B) {
     if(cantColumnas() == B.cantFilas()) {
         VectorMapMatrix result(cantFilas(), B.cantColumnas());
@@ -314,7 +329,7 @@ pair<vector<double>,short> VectorMapMatrix::EGPP(vector<double> bb) {
     VectorMapMatrix copy = VectorMapMatrix(*this);
     for(i = 0; i < copy.cantFilas()-1; i++){ //itero sobre las filas, excepto la ultima porque ahi no tengo que hacer nada
         double maximo_abs = 0;    //en cada iteración es igual al número más grande (en valor absoluto) del resto de la columna.
-        unsigned int fila_del_maximo;
+        unsigned int fila_del_maximo = 0;
         list<pair<uint, double> > filas_a_ser_restadas;
         auto iter_de_la_lista_apuntando_al_maximo = filas_a_ser_restadas.begin();
         for(j = i; j < copy.cantFilas(); ++j){ //itero sobre las filas desde i+1 en adelante, para encontrar el valor de "maximo_abs".

@@ -13,25 +13,9 @@
 #include <chrono>
 #include "VectorMapMatrix.h"
 
-typedef unsigned char uchar;
-
 using namespace std;
 
 
-/**
- * esta funcion toma como parametros las matrices D y V
- * @return el tiempo que tarda la senial en atravesar el cuerpo
- */
-vector<double> multMatPorVect(const vector<vector<double> > &M, const vector<double> &v){//recordar que el vector v son las inversas de las velocidades
-    const size_t& n = v.size();
-    vector<double> res(n);
-    for(size_t i = 0; i < n; ++i) {
-        res[i] = 0;
-        for (size_t k = 0; k < n; ++k)
-            res[i] += M[i][k]*v[k];
-    }
-    return res;
-}
 
 vector<vector<double> > trasponer(const vector<vector<double> >& mat){
     const unsigned long& n = mat.size();
@@ -74,7 +58,6 @@ VectorMapMatrix multMatPorMat(VectorMapMatrix &mat1, VectorMapMatrix &mat2) {
 	}
     	return res;
 }
-
 
 vector<vector<uint16_t>> datosAMatriz(uchar &datos, uint ancho, uint alto) {
 	vector<vector<uint16_t>> ret (0);
@@ -124,103 +107,77 @@ bool esTraspuesta(VectorMapMatrix &D, VectorMapMatrix &Dt) {
 	return ret;
 }
 
-void imprimirVector(const vector<unsigned short> & vect, uint tam){
-    for(uint i = 0; i< tam; i++){
-        for(uint j = 0; j < tam; j++){
-            cout << vect[i*tam+j] << ",";
-        } cout << endl;
-    }
-
-}
-
-vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, uint metodo, uint tamanoDiscretizacion, double nivelRuido, size_t* ancho) {
+vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, uint tamanoDiscretizacion, double inicioRuido, double finRuido, double signoRuido, size_t* ancho) {
 	vector<vector<double> >* cuerpo;
 	// 1) tomamos la imagen
 	cuerpo = leerCSV(nombreAchivoEntrada);
-//    *ancho = cuerpo[0].size();
-//    vector<double> Vtemp = pasarAVector(*cuerpo);
-//    imprimirVector(Vtemp, *ancho);
-//    string salida = nombreAchivoEntrada + "disc.csv";
-//    escribirCSV(salida.c_str(), Vtemp, *ancho);
 
 	// 2) la discretizamos
-	vector<vector<double> > cuerpoDiscretizado = discretizar(*cuerpo, tamanoDiscretizacion);
+	uint granularidad = cuerpo->size()/tamanoDiscretizacion; 
+	vector<vector<double> > cuerpoDiscretizado = discretizar(*cuerpo, granularidad);
 	size_t tamMatriz = cuerpoDiscretizado.size();
     *ancho = cuerpoDiscretizado.size();
 	// 3) obtenemos D (la matriz con las trayectorias de los rayos
-	VectorMapMatrix D = generarRayos(tamMatriz, metodo, tamMatriz, 1); //tamaño discretizado, metodo a utilizar, cantidad de rayos, pixeles salteados-1.
+	VectorMapMatrix  D = generarRayos(tamMatriz, 1, tamMatriz, 1); //tamaño discretizado, metodo a utilizar, cantidad de rayos, pixeles salteados-1.
 	// 4) pasamos la imagen discretizada a vector
 	vector<double> Vtemp = pasarAVector(cuerpoDiscretizado);
 	V = &Vtemp;
-
-    // 5) invertimos el vector V
-	/*vector<double> Vinv (V->size(), 0);
-	for (uint i = 0; i< V->size(); i++){
-		if ((*V)[i] != 0){
-			Vinv[i] = 1/(*V)[i];
-		}
-	} No hay que invertir.*/
+	
 	// 6) multiplicamos la matriz D por el vector V
 	vector<double> T = D*Vtemp;
 	// 7) le aplicamos ruido al vector T
-	vector<double> Tr = T;//MWGNNoise(T, nivelRuido);
+	vector<double> Tr = uniformNoise(T, inicioRuido, finRuido, signoRuido);
+	
 	// 8) generamos DtD
 	VectorMapMatrix Dt = getTraspuesta(D);
 	vector<vector<double>> DtD = Dt*D;//multMatPorMat(Dt,D);
-
+	
 	// 9) generamos el vector Dt*T
-	vector<double> DtT = Dt*Tr;
+	//vector<double> DtT = Dt*Tr;
+
+	// 10) resolvemos el sistema DtDx = DtT con CML
+	vector<vector<double> > A = D.convert_to_vec_matrix();
+	vector<double> solucion = CML(A, Tr);
+
 	// 10) resolvemos el sistema DtDx = DtT con EG
-	pair<vector<double>,short> solucion = EG2(DtD, DtT);
-	/*vector<double> Check (V->size(), 0);
-	for (uint i = 0; i< V->size(); i++){
-		if (abs(solucion.first[i]) > 0.00001){
-			Check[i] = 1/solucion.first[i];
-		}
-	} No hay que invertir.*/
+	//pair<vector<double>,short> solucion = EG2(DtD, DtT);
+	
 
 	//cout << ECM(*V,solucion.first) << endl;
 	// invertir los valores de la solucion y volverlo a pasar a matriz para luego convertirlo en una imagen que podamos ver
-    string salida = nombreAchivoEntrada + "disc.csv";
-    escribirCSV(salida.c_str(), solucion.first, *ancho);
-	return solucion.first;
+	//return solucion.first;
+
+	return solucion;	
 }
 
 
 //------------------------ Parseo de la entrada -------------------------------//
 
 bool contiene(char *argv[], const string *cadena) {
-    string param1 = argv[1], param2 = argv[3], param3 = argv[5], param4 = argv[7], param5 = argv[9];
-    return param1.compare(*cadena) || param2.compare(*cadena) || param3.compare(*cadena) || param4.compare(*cadena)
-            || param5.compare(*cadena);
+    string param1 = argv[1], param2 = argv[3], param3 = argv[5];//, param4 = argv[5];
+    return param1.compare(*cadena) || param2.compare(*cadena) || param3.compare(*cadena); //|| param4.compare(*cadena);
 }
 
 string obtener(char *argv[], const string *cadena) {
     string ret;
-    string param1 = argv[1], param2 = argv[3], param3 = argv[5], param4 = argv[7], param5 = argv[9];
+    string param1 = argv[1], param2 = argv[3], param3 = argv[5];//, param4 = argv[7];
 
     if (param1.compare(*cadena) == 0) ret = argv[2];
     if (param2.compare(*cadena) == 0) ret = argv[4];
     if (param3.compare(*cadena) == 0) ret = argv[6];
-    if (param4.compare(*cadena) == 0) ret = argv[8];
-    if (param5.compare(*cadena) == 0) ret = argv[10];
+//    if (param4.compare(*cadena) == 0) ret = argv[8];
     return ret;
 }
 
-bool obtenerParametros(int argc, char * argv[], string *ruido, string *nombreArchivoEntrada,
-                        string *nombreArchivoSalida, string *metodo, string *discretizacion) {
+bool obtenerParametros(int argc, char * argv[], string *ruido, string *nombreArchivoEntrada, string *nombreArchivoSalida) {
     bool ret = false;
-    const string param1 = "-r", param2 = "-i", param3 = "-o", param4 = "-m", param5 = "-d";
+    const string param1 = "-r", param2 = "-i", param3 = "-o";
 
-    if (argc == 11 && contiene(argv, &param1) && contiene(argv, &param2) && contiene(argv, &param3) &&
-        contiene(argv, &param4) && contiene(argv, &param5)) {
+    if (argc == 7 && contiene(argv, &param1) && contiene(argv, &param2) && contiene(argv, &param3)) {
         *ruido = obtener(argv, &param1);
         *nombreArchivoEntrada = obtener(argv, &param2);
         *nombreArchivoSalida = obtener(argv, &param3);
-        *metodo = obtener(argv, &param4);
-        *discretizacion = obtener(argv, &param5);
-        ret = (ruido != NULL && nombreArchivoEntrada != NULL && nombreArchivoSalida != NULL && metodo != NULL
-                && discretizacion != NULL);
+        ret = (ruido != NULL && nombreArchivoEntrada != NULL && nombreArchivoSalida != NULL);
     }
     return ret;
 }
@@ -233,21 +190,17 @@ int main(int argc, char * argv[]) {
     string nombreAchivoEntrada;
     string nombreAchivoSalida;
     vector<double>* V;
+    uint discretizacion;
     string ruido;
     size_t ancho;
-    string m;
-    string d;
 
-    if (!obtenerParametros(argc, argv, &ruido, &nombreAchivoEntrada, &nombreAchivoSalida, &m, &d)) {
-        cout << "Modo de uso: tp3 -r <nivel_ruido> -i <nombre_archivo_entrada> -o <nombre_archivo_salida> -m <metodo> "
-                "-d <discretizacion>\n";
+    if (!obtenerParametros(argc, argv, &ruido, &nombreAchivoEntrada, &nombreAchivoSalida)) {
+        cout << "Modo de uso: tp3 -r <nivel_ruido> -i <nombre_archivo_entrada> -o <nombre_archivo_salida>\n";
     } else {
         double nivelRuido = atof(ruido.c_str());
-        int metodo = atoi(m.c_str());
-        uint discretizacion = atoi(d.c_str());
-        vector<double> reconstruccion = reconstruirCuerpo(nombreAchivoEntrada, V, metodo, discretizacion, nivelRuido, &ancho);
+        vector<double> reconstruccion = reconstruirCuerpo(nombreAchivoEntrada, V, 32, nivelRuido, nivelRuido, 0, &ancho);
 
-//        escribirCSV(nombreAchivoSalida, reconstruccion, ancho);
+        escribirCSV(nombreAchivoSalida, reconstruccion, ancho);
     }
 
     return 0;
