@@ -126,7 +126,8 @@ double reconstruirCuerpo(string nombreAchivoEntrada, string nombreAchivoSalida, 
     cuerpo = leerCSV(nombreAchivoEntrada);
 
     // 2) la discretizamos
-    vector<vector<double> > cuerpoDiscretizado = discretizar(*cuerpo, tamanoDiscretizacion);
+    uint granularidad = cuerpo->size()/tamanoDiscretizacion;
+    vector<vector<double> > cuerpoDiscretizado = discretizar(*cuerpo, granularidad);
     size_t tamMatriz = cuerpoDiscretizado.size();
     *ancho = cuerpoDiscretizado.size();
     // 3) obtenemos D (la matriz con las trayectorias de los rayos
