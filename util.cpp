@@ -145,7 +145,7 @@ double ECM(const vector<double>& original, const vector<double>& reconstruido) {
         dif = original[i] - reconstruido[i];
         ret += dif*dif;
     }
-    return ret/(n*n);
+    return ret/n;
 }
 
 vector<double> CML(vector<vector<double>> &mat, vector<double> b) {
