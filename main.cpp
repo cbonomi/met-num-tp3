@@ -139,7 +139,7 @@ double reconstruirCuerpo(string nombreAchivoEntrada, string nombreAchivoSalida, 
     vector<double> T = D*Vtemp;
     // 7) le aplicamos ruido al vector T
     vector<double> Tr = MWGNNoise(T, nivelRuido);
-
+/*
     // 8) generamos DtD
     VectorMapMatrix Dt = getTraspuesta(D);
     vector<vector<double>> DtD = Dt*D;//multMatPorMat(Dt,D);
@@ -153,15 +153,25 @@ double reconstruirCuerpo(string nombreAchivoEntrada, string nombreAchivoSalida, 
 
     // 10) resolvemos el sistema DtDx = DtT con EG
     //pair<vector<double>,short> solucion = EG2(DtD, DtT);
+*/
 
 
+    // 8) generamos DtD
+    VectorMapMatrix Dt = getTraspuesta(D);
+    vector<vector<double>> DtD = Dt*D;//multMatPorMat(Dt,D);
+
+    // 9) generamos el vector Dt*T
+    vector<double> DtT = Dt*Tr;
+
+    // 10) resolvemos el sistema DtDx = DtT con EG
+    pair<vector<double>,short> solucion = EG2(DtD, DtT);
 
     //cout << ECM(*V,solucion.first) << endl;
     // invertir los valores de la solucion y volverlo a pasar a matriz para luego convertirlo en una imagen que podamos ver
     //string salida = nombreAchivoEntrada + "disc.csv";
-    escribirCSV(nombreAchivoSalida.c_str(), solucion, *ancho);
+    escribirCSV(nombreAchivoSalida.c_str(), solucion.first, *ancho);
 //    cout << nombreAchivoSalida << endl;
-    return calcularPSNR(Vtemp, solucion);
+    return calcularPSNR(Vtemp, solucion.first);
 }
 
 
