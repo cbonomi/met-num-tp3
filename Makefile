@@ -8,6 +8,6 @@ main: main.cpp util.h util.cpp calcular_rayos.h calcular_rayos.cpp VectorMapMatr
 
 
 clean:
-	rm tp2
+	rm tp3
 	rm *.txt
 

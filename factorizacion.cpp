@@ -1,6 +1,6 @@
 #include "factorizacion.h"
 
-#define TOLERANCIA 0.00001
+#define TOLERANCIA_REDONDEO 0.00001
 
 using namespace std;
 
@@ -162,12 +162,26 @@ void sumMat(vector<vector<double> > &mat1, const vector<vector<double> > &mat2) 
             mat1[i][j] += mat2[i][j];
 }
 
-vector< pair<double,vector<double> > > deflacion(vector<vector<double> > mat) {
+vector< pair<double,vector<double> > > deflacion(vector<vector<double> > mat,const double tolerance, const bool debug) {
     uint N = mat[0].size();
-    vector< pair<double,vector<double> > > res (N);
-    for (uint i = 0; i < N; i++){
-        cerr << "calculando autovalores: " << i+1 << "/" << N << '\r';
-        res[i] = metodoPotencia(mat);
+
+    vector< pair<double,vector<double> > > res;    
+    res.push_back(metodoPotencia(mat));
+    vector<vector<double> > v_x_vt = multVec(res[0].second);    //v*vt
+    multMatEsc(v_x_vt,res[0].first*(-1));                       //-lambda_i*(v*vt)
+    sumMat(mat, v_x_vt);   
+    for (uint i = 1; i < N; i++){  
+        auto autov = metodoPotencia(mat);
+        if (autov.first/res[0].first < tolerance){
+                break;
+        }
+        res.push_back(autov);
+        if (debug){
+            cerr << "calculando autovalores: " << i+1 << "/" << N 
+                 << " O_max:" << res[0].first << " O_i:" << res[i].first
+                 << " Numero cond:" << res[0].first/res[i].first//'\r';
+                 << " K+1/O1:" << res[i].first/res[0].first << endl;//'\r';
+        }
         vector<vector<double> > v_x_vt = multVec(res[i].second);    //v*vt
         multMatEsc(v_x_vt,res[i].first*(-1));                       //-lambda_i*(v*vt)
         sumMat(mat, v_x_vt);
@@ -178,34 +192,38 @@ vector< pair<double,vector<double> > > deflacion(vector<vector<double> > mat) {
 void calcular_svd(const vector<vector<double> > &mat,
                         vector<vector<double> > &Ut,    //
                         vector<double> &Sigm,
-                        vector<vector<double> > &Vt)
+                        vector<vector<double> > &Vt,
+                        const double tolerance,
+                        const bool debug)
 {
     uint N = mat.size();
     uint M = mat[0].size();
-    cerr << "LLEGO SVD N=" << N << " M=" << M << endl;
+    if (debug)
+        cerr << "Calculando SVD N=" << N << " M=" << M << endl;
     vector<vector<double> > AtA = calcularXtX(mat);
-    vector< pair<double,vector<double> > > autovectores = deflacion(AtA);
+    vector< pair<double,vector<double> > > autovectores = deflacion(AtA,tolerance,debug);
     
 
     //Calculamos Sigma
     uint c = 0;
     Sigm.clear();
-    while ((c<autovectores.size()) && (sqrt(autovectores[c].first) > TOLERANCIA)){
+    while ((c<autovectores.size()) && (sqrt(autovectores[c].first) > TOLERANCIA_REDONDEO)){
         Sigm.push_back(sqrt(autovectores[c].first));
         c++;
     }
-    cerr << "TERMINO Sig tam=" << Sigm.size() << endl;
+
+    if (debug)
+        cerr << "TERMINO Sig tam=" << Sigm.size() << endl;
     //Calculamos Vt
     Vt.clear();
     for (uint j = 0; j < c; ++j){
             Vt.push_back(autovectores[j].second);
     }
 
-    
-    cerr << "TERMINO Vt N=" << Vt.size() << " M=" << Vt[0].size() << endl;
+    if (debug)
+        cerr << "TERMINO Vt N=" << Vt.size() << " M=" << Vt[0].size() << endl;
     //Calculamos Ut
     Ut.clear();
-    cerr << "PRE FOR " << endl;
     for (uint i = 0; i < Sigm.size(); ++i){
         vector<double> vec = Vt[i];
         multVecEsc(vec,double(1/Sigm[i]));
@@ -214,5 +232,6 @@ void calcular_svd(const vector<vector<double> > &mat,
         Ut.push_back(u_i);
     }
     //Completo las filas de Ut
-    cerr << "TERMINO Ut N=" << Ut.size() << " M=" << Ut[0].size() << endl;
+    if (debug)
+        cerr << "TERMINO Ut N=" << Ut.size() << " M=" << Ut[0].size() << endl;
 }

@@ -27,6 +27,8 @@ vector< pair<double,vector<double> > > deflacion(vector<vector<double> > mat);
 void calcular_svd(const vector<vector<double> > &mat,
                         vector<vector<double> > &Ut,    //
                         vector<double> &Sigm,
-                        vector<vector<double> > &Vt);
+                        vector<vector<double> > &Vt,
+                        const double tolerance,
+                        const bool debug);
 
 #endif //TC_FACTORIZACION_H
