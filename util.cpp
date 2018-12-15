@@ -329,4 +329,25 @@ vector<double> AWGNNoise(const vector<double>& t, const vector<double>& imagen, 
     return res;
 }
 
+double ECM(const vector<double>& original, const vector<double>& reconstruido) {
+    uint n = original.size();
+    double ret = 0;
+    double dif;
+    int val;
+    for(uint i = 0; i< n; i++){
+        if (reconstruido[i] < 0)
+            val = 0;
+        else
+        if (reconstruido[i] > 255)
+            val = 255;
+        else
+            val = reconstruido[i];
+        dif = original[i] - val;
+        ret += dif*dif;
+    }
+    return ret/n;
+}
 
+long double calcularPSNR(const vector<double>& original, const vector<double>& reconstruido) {
+    return 10 * log10 (MAX_u_cuadrado/ECM(original, reconstruido));
+}

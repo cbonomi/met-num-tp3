@@ -42,5 +42,6 @@ void escribirCSV(string nombreArchivo, vector<double>& vector, size_t ancho);
 
 vector<double> AWGNNoise(const vector<double>& t, const vector<double>& imagen, double porcentajeDeRuido);
 vector<double> MWGNNoise(const vector<double>& t, const vector<double>& imagen, double porcentajeDeRuido);
+long double calcularPSNR(const vector<double>& original, const vector<double>& reconstruido);
 
 #endif //TC_UTIL_H
