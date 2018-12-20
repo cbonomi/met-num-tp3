@@ -116,18 +116,22 @@ vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, 
 
 	// 2) la discretizamos
 	uint granularidad = cuerpo->size()/tamanoDiscretizacion; 
+
 	vector<vector<double> > cuerpoDiscretizado = discretizar(*cuerpo, granularidad);
 	size_t tamMatriz = cuerpoDiscretizado.size();
     *ancho = cuerpoDiscretizado.size();
 	// 3) obtenemos D (la matriz con las trayectorias de los rayos
 	VectorMapMatrix  D = generarRayos(tamMatriz, metodo, cantidadLasers, separacionRayos); //tamaño discretizado, metodo a utilizar, cantidad de rayos, pixeles salteados-1.
 	// 4) pasamos la imagen discretizada a vector
-	vector<double> Vtemp = pasarAVector(cuerpoDiscretizado);
+	
+    //cout << "Cantidad total de rayos:" << D.cantFilas() << endl;
+    vector<double> Vtemp = pasarAVector(cuerpoDiscretizado);
 	//V = &Vtemp;
 	
 	// 6) multiplicamos la matriz D por el vector V
 	vector<double> T = D*Vtemp;
 	// 7) le aplicamos ruido al vector T
+    
     //copiamos T a Tr
     vector<double> Tr;
     for (uint i=0;i<T.size();i++)
@@ -139,8 +143,8 @@ vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, 
         Tr = MWGNNoise(T, Vtemp, nivelRuido);
 
 	// 8) generamos DtD
-	VectorMapMatrix Dt = getTraspuesta(D);
-	vector<vector<double>> DtD = Dt*D;//multMatPorMat(Dt,D);
+	//VectorMapMatrix Dt = getTraspuesta(D);
+	//vector<vector<double>> DtD = Dt*D;//multMatPorMat(Dt,D);
 	
 	// 9) generamos el vector Dt*T
 	//vector<double> DtT = Dt*Tr;
@@ -149,48 +153,12 @@ vector<double> reconstruirCuerpo(string nombreAchivoEntrada, vector<double>* V, 
 	vector<vector<double> > A = D.convert_to_vec_matrix();
 	vector<double> solucion = CML(A, Tr,tolerance,debug);
 
+    //cout << calcularPSNR(Vtemp, solucion)<< endl;
+
     return solucion;
 }
 
 
-//------------------------ Parseo de la entrada -------------------------------//
-
-bool contiene(char *argv[], const string *cadena) {
-    string param1 = argv[1], param2 = argv[3], param3 = argv[5], param4 = argv[7], param5 = argv[9];
-    return param1.compare(*cadena) || param2.compare(*cadena) || param3.compare(*cadena) || param4.compare(*cadena)
-            || param5.compare(*cadena);
-}
-
-string obtener(char *argv[], const string *cadena) {
-    string ret;
-    string param1 = argv[1], param2 = argv[3], param3 = argv[5], param4 = argv[7], param5 = argv[9];
-
-    if (param1.compare(*cadena) == 0) ret = argv[2];
-    if (param2.compare(*cadena) == 0) ret = argv[4];
-    if (param3.compare(*cadena) == 0) ret = argv[6];
-    if (param4.compare(*cadena) == 0) ret = argv[8];
-    if (param5.compare(*cadena) == 0) ret = argv[10];
-
-    return ret;
-}
-
-bool obtenerParametros(int argc, char * argv[], string *ruido, string *nombreArchivoEntrada,
-                        string *nombreArchivoSalida, string *tipoRuido, string *discretizacion) {
-    bool ret = false;
-    const string param1 = "-r", param2 = "-i", param3 = "-o", param4 = "-t", param5 = "-d";
-
-    if (argc == 11 && contiene(argv, &param1) && contiene(argv, &param2) && contiene(argv, &param3)
-        && contiene(argv, &param4) && contiene(argv, &param5)) {
-        *ruido = obtener(argv, &param1);
-        *nombreArchivoEntrada = obtener(argv, &param2);
-        *nombreArchivoSalida = obtener(argv, &param3);
-        *tipoRuido = obtener(argv, &param4);
-        *discretizacion = obtener(argv, &param5);
-        ret = (ruido != NULL && nombreArchivoEntrada != NULL && nombreArchivoSalida != NULL && tipoRuido != NULL
-                && discretizacion != NULL);
-    }
-    return ret;
-}
 
 //------------------------ Parseo de la entrada -------------------------------//
 
@@ -200,25 +168,25 @@ int main(int argc, char * argv[]) {
     string nombreArchivoSalida;
     vector<double>* V;
     uint discretizacion = 16;
-    double tolerance = 0.0;
+    double tolerance = 0.001;
     double nivelRuido = 0.0;
     string tipoRuido = "A";
     size_t ancho;
-    uint metodo = 2;
+    uint metodo = 1;
     uint separacionRayos = 1;
     uint cantidadRayos = 0;
 
     bool debug =false;
-    bool in = false;
-    bool out = false;
+    bool hasInput = false;
+    bool hasOutput = false;
     for (int c=1;c<argc;++c){
         string arg = argv[c];
         if (arg=="-o"){
-            out = true;
+            hasOutput = true;
             nombreArchivoSalida = argv[c+1];
         }
         if (arg=="-i"){
-            in = true;
+            hasInput = true;
             nombreArchivoEntrada = argv[c+1];
         }
         if (arg=="-r"){
@@ -255,25 +223,34 @@ int main(int argc, char * argv[]) {
         cantidadRayos = discretizacion;
     }
     
-    bool faltan_parametros = not (in and out);
+    bool faltan_parametros = not (hasInput and hasOutput);
     if (faltan_parametros){
+        cout << endl;
         cout << "Modo de uso: tp3 -r <nivel_ruido> -t <tipo_ruido> -i <nombre_archivo_entrada> -o <nombre_archivo_salida>\n";
         cout << "Las opciones para tipo de ruido son:" << endl;
         cout << "\t M: ruido multiplicativo" << endl;
         cout << "\t A: ruido aditivo." << endl;
-        cout << "---- Parametros opcionales: ----" << endl;
+        cout << "--------------------- Parametros opcionales: ----------------------------------" << endl;
         cout << "-d <tam_discretizacion> : 16 por defecto." << endl;
         cout << "-nt <nivel_tolerancia> : Valor por defecto 0" << endl;
         cout << "     t=0 : No se filtran valores singulares" << endl;
         cout << "     t=0.001 Se filtran valores singulares 1000 veces mas chicos que el valor singular de mayor modulo" << endl;
         //cout << "-nc/-numcond : Imprime el numero de condicion de la matriz" << endl;
         cout << "-m <num_metodo> selecciona el metodo de creacion de rayos, 1 por defecto" << endl;
+        cout << "Las opciones para tipo de metodo son:" << endl;
+        cout << "\t 0: Rotaciones" << endl;
+        cout << "\t 1: Barrido horizontal" << endl;
+        cout << "\t 2: Barrido vertical" << endl;
         cout << "-s <num_separacion> selecciona el espaciado entre cada rayo generado, 1 por defecto (sin espaciado)" << endl;
         cout << "-l <num_rayos> selecciona la cantidad de rayos, por defecto el tamano completo" << endl;
-        
+        cout << "------------------------------------------------------------------------------" << endl;
+        cout << "Ejemplo: ./tp3 -r 0.01 -t A -i tomo3.csv -o out.csv -nt 0.00 -m 1 -d 16" << endl;
+        cout << "Genera la reconstruccion de tamaño 16 a partir de los datos en el archivo" << endl;
+        cout << "  'tomo3.csv' utilizando el metodo de Barrido Horizontal con ruido aditivo 0.01." << endl;
     } else {
         vector<double> reconstruccion = reconstruirCuerpo(nombreArchivoEntrada, V, discretizacion, nivelRuido,tipoRuido, 
                                         metodo, cantidadRayos, separacionRayos, &ancho,tolerance,debug);
+        cout << "Imprimiendo CSV en: " << nombreArchivoSalida << endl;
         escribirCSV(nombreArchivoSalida, reconstruccion, ancho);
     }
 

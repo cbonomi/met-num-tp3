@@ -186,6 +186,7 @@ vector< pair<double,vector<double> > > deflacion(vector<vector<double> > mat,con
         multMatEsc(v_x_vt,res[i].first*(-1));                       //-lambda_i*(v*vt)
         sumMat(mat, v_x_vt);
     }
+    cout << "Numero de condicion: " << res[0].first/res[res.size()-1].first << endl;
     return res;
 }
 

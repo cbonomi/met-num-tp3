@@ -146,14 +146,15 @@ vector<double> CML(vector<vector<double>> &mat, vector<double> b,const double to
     vector<double> res = vector<double>(mat.size(),0.0);
     
     for (uint i = 0; i < Sigma.size(); ++i){
-       // TODO: formula:
+    
+        //res = res + (b_prima[i] / Sigma[i]) * Vt.fila(i);
         vector<double> vec = Vt[i];
         multVecEsc(vec,b_prima[i]);
         multVecEsc(vec,(1/Sigma[i]));
 
         res = sumaVec(res,vec);
 
-        //res = res + (b_prima[i] / Sigma[i]) * Vt.fila(i);
+        
     }
     return res;
 }
