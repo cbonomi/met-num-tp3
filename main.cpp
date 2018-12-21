@@ -250,7 +250,8 @@ int main(int argc, char * argv[]) {
     } else {
         vector<double> reconstruccion = reconstruirCuerpo(nombreArchivoEntrada, V, discretizacion, nivelRuido,tipoRuido, 
                                         metodo, cantidadRayos, separacionRayos, &ancho,tolerance,debug);
-        cout << "Imprimiendo CSV en: " << nombreArchivoSalida << endl;
+        if (debug)
+            cerr << "Imprimiendo CSV en: " << nombreArchivoSalida << endl;
         escribirCSV(nombreArchivoSalida, reconstruccion, ancho);
     }
 
